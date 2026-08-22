@@ -10,6 +10,7 @@ Nova CMS is a small open-source PHP publishing CMS for blogs, portfolios, associ
 - SEO title and meta description per article
 - Local image uploads with MIME/size validation
 - External image URLs for serverless deployments
+- Live cover-image preview in the editor
 - PDO with SQLite locally and MySQL/PostgreSQL through `DATABASE_URL`
 - CSRF protection, prepared statements, session hardening and login throttling
 - POST-only destructive actions
@@ -22,11 +23,30 @@ PHP 8.2+ with PDO and `fileinfo`.
 ## Run locally
 
 ```powershell
-Copy-Item .env.example .env
 php -S localhost:8000
 ```
 
-For the built-in PHP server only, if `CMS_ADMIN_PASSWORD` is absent, the development fallback password is `change-me-now`. Never use that fallback in production.
+Open `http://localhost:8000`.
+
+### Local demo admin
+
+When Nova CMS runs through PHP's built-in development server, the demo account is:
+
+```text
+username: admin
+password: 1234
+```
+
+This `1234` password is **development/demo only**. Public production deployments keep admin access disabled unless `CMS_ADMIN_PASSWORD` is explicitly configured server-side.
+
+## Images
+
+In the article editor you can either:
+
+- paste an HTTPS image URL, or
+- choose a JPG, PNG, WebP or GIF file locally (5 MB maximum).
+
+The editor shows the cover immediately before saving. On Vercel/serverless hosting, use an external image URL or persistent object storage because the local filesystem is not durable.
 
 ## Production configuration
 
@@ -48,7 +68,7 @@ This repository includes `vercel.json` using the community `vercel-php` runtime.
 
 ## Security
 
-Do not commit `.env`. Rotate any credential that has ever been committed. See [SECURITY.md](SECURITY.md).
+Do not commit `.env`. Never use `1234` for a public deployment. Rotate any credential that has ever been committed. See [SECURITY.md](SECURITY.md).
 
 ## License
 
