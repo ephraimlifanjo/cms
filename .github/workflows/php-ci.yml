@@ -1,0 +1,36 @@
+name: PHP CI
+
+on:
+  push:
+    branches: [main, "release/**"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite, fileinfo, mbstring
+          coverage: none
+      - name: PHP syntax check
+        run: find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
+      - name: Smoke test
+        env:
+          CMS_ADMIN_PASSWORD: ci-only-password-not-for-production
+          SQLITE_PATH: /tmp/nova-cms-ci.sqlite
+        run: |
+          php -S 127.0.0.1:8080 > /tmp/nova-cms.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID' EXIT
+          sleep 1
+          curl --fail --silent http://127.0.0.1:8080/ | grep -q 'Nova CMS'
+          curl --fail --silent http://127.0.0.1:8080/login.php | grep -q 'Bon retour'
+          curl --fail --silent http://127.0.0.1:8080/health.php | grep -q '"ok":true'
