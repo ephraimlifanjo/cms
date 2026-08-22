@@ -1,0 +1,22 @@
+name: Release v1.1.0
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create v1.1.0 release if missing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v1.1.0 >/dev/null 2>&1; then
+            echo "v1.1.0 already exists"
+          else
+            git tag v1.1.0
+            git push origin v1.1.0
+            gh release create v1.1.0 --title "Nova CMS v1.1.0" --notes-file CHANGELOG.md
+          fi
