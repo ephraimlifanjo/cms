@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.2 — 2026-08-22
+
+- Added the local development demo account `admin / 1234` when running with `php -S`.
+- Kept production admin access environment-controlled instead of exposing `1234` publicly.
+- Added live article-cover preview for both image URLs and selected local image files.
+- Added a polished empty-image preview state in the article editor.
+- Updated documentation for image handling on local PHP and Vercel/serverless hosting.
+
 ## 1.0.0 — 2026-08-22
 
 - Rebuilt the original educational CRUD into a usable micro-CMS.
