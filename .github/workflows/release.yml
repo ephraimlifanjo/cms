@@ -1,0 +1,30 @@
+name: Publish GitHub Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Publish v1.0.0 if missing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v1.0.0 >/dev/null 2>&1; then
+            echo "v1.0.0 already exists"
+            exit 0
+          fi
+          git tag v1.0.0 "$GITHUB_SHA"
+          git push origin v1.0.0
+          gh release create v1.0.0 \
+            --title "Nova CMS v1.0.0" \
+            --notes "Production rebuild of Nova CMS: responsive publishing UX, secure admin authentication, PDO storage, CSRF protection, draft/publish workflow, SEO fields, Vercel PHP configuration, documentation and CI smoke tests."
