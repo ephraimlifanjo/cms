@@ -1,1 +1,22 @@
-<?php header('Location: blog.php'); exit; ?>
+<?php
+require __DIR__ . '/bootstrap.php';
+$slug = trim((string)($_GET['slug'] ?? ''));
+if ($slug !== '') {
+    $article = article_by_slug($slug);
+    if (!$article) { http_response_code(404); render_header('Article introuvable'); echo '<main class="shell"><div class="empty"><h1>Article introuvable</h1><a class="btn" href="'.e(app_url('index.php')).'">Retour</a></div></main>'; render_footer(); exit; }
+    render_header($article['seo_title'] ?: $article['title'], $article['seo_description'] ?: ($article['excerpt'] ?: excerpt($article['content'])));
+    ?><header class="public-nav"><a class="brand" href="<?=e(app_url('index.php'))?>"><span class="brand-mark">N</span><span><?=e(env('CMS_SITE_NAME','Nova CMS'))?></span></a><a class="ghost-link" href="<?=e(app_url('login.php'))?>">Administration</a></header>
+    <main class="article-shell"><a class="back-link" href="<?=e(app_url('index.php'))?>">← Tous les articles</a><article class="article-detail"><?php if($article['image']):?><img class="hero-image" src="<?=e($article['image'])?>" alt=""><?php endif;?><div class="article-body"><div class="eyebrow"><?=e($article['category'])?></div><h1><?=e($article['title'])?></h1><div class="article-meta">Publié le <?=e(date('d/m/Y', strtotime($article['published_at'] ?: $article['created_at'])))?></div><?php if($article['excerpt']):?><p class="lead"><?=e($article['excerpt'])?></p><?php endif;?><div class="prose"><?=nl2br(e($article['content']))?></div><?php if($article['tags']):?><div class="tags"><?php foreach(array_filter(array_map('trim',explode(',',$article['tags']))) as $tag):?><span>#<?=e($tag)?></span><?php endforeach;?></div><?php endif;?></div></article></main><?php render_footer(); exit;
+}
+$q = trim((string)($_GET['q'] ?? '')); $category = trim((string)($_GET['category'] ?? ''));
+$sql = "SELECT * FROM articles WHERE status='published'"; $params=[];
+if ($q !== '') { $sql .= ' AND (title LIKE ? OR excerpt LIKE ? OR content LIKE ?)'; $like='%'.$q.'%'; array_push($params,$like,$like,$like); }
+if ($category !== '') { $sql .= ' AND category=?'; $params[]=$category; }
+$sql .= ' ORDER BY featured DESC, published_at DESC, created_at DESC';
+$stmt=db()->prepare($sql); $stmt->execute($params); $articles=$stmt->fetchAll();
+render_header('Accueil','Articles et publications de '.env('CMS_SITE_NAME','Nova CMS'));
+?>
+<header class="public-nav"><a class="brand" href="<?=e(app_url('index.php'))?>"><span class="brand-mark">N</span><span><?=e(env('CMS_SITE_NAME','Nova CMS'))?></span></a><a class="ghost-link" href="<?=e(app_url('login.php'))?>">Administration</a></header>
+<main class="shell"><section class="hero"><div><div class="eyebrow">Open source publishing</div><h1>Publier simplement.<br><span>Rester propriétaire de son contenu.</span></h1><p>Un micro-CMS PHP rapide pour blogs, petites équipes, portfolios et sites éditoriaux.</p></div><div class="hero-card"><strong><?=count($articles)?></strong><span>publication<?=count($articles)>1?'s':''?> visible<?=count($articles)>1?'s':''?></span></div></section>
+<form class="searchbar" method="get"><input name="q" value="<?=e($q)?>" placeholder="Rechercher un article…"><select name="category"><option value="">Toutes les catégories</option><?php foreach(categories() as $cat):?><option value="<?=e($cat['category'])?>" <?=$category===$cat['category']?'selected':''?>><?=e($cat['category'])?> (<?=e((string)$cat['total'])?>)</option><?php endforeach;?></select><button class="btn">Rechercher</button></form>
+<?php if(!$articles):?><div class="empty"><h2>Aucun article trouvé</h2><p>Essayez une autre recherche ou publiez votre premier article.</p></div><?php else:?><section class="article-grid"><?php foreach($articles as $article):?><article class="article-card"><?php if($article['image']):?><a href="?slug=<?=e($article['slug'])?>"><img src="<?=e($article['image'])?>" alt="" loading="lazy"></a><?php endif;?><div class="article-card-body"><div class="card-top"><span class="pill"><?=e($article['category'])?></span><?php if($article['featured']):?><span class="featured">À la une</span><?php endif;?></div><h2><a href="?slug=<?=e($article['slug'])?>"><?=e($article['title'])?></a></h2><p><?=e($article['excerpt'] ?: excerpt($article['content']))?></p><div class="card-footer"><span><?=e(date('d M Y',strtotime($article['published_at'] ?: $article['created_at'])))?></span><a href="?slug=<?=e($article['slug'])?>">Lire →</a></div></div></article><?php endforeach;?></section><?php endif;?></main><?php render_footer();
