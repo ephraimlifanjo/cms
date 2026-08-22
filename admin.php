@@ -1,11 +1,10 @@
-<?php session_start();
-if (!isset($_SESSION["admin"])) { header("Location: login.php"); exit; }
-include 'db.php';
-echo '<a href="add_article.php">Ajouter un article</a><hr>';
-$result = $conn->query("SELECT * FROM articles ORDER BY created_at DESC");
-while($row = $result->fetch_assoc()) {
-    echo '<h3>' . htmlspecialchars($row['title']) . '</h3>';
-    echo '<a href="edit_article.php?id=' . $row['id'] . '">Modifier</a> | ';
-    echo '<a href="delete_article.php?id=' . $row['id'] . '">Supprimer</a><hr>';
-}
-?>
+<?php
+require __DIR__.'/bootstrap.php'; require_admin();
+$q=trim((string)($_GET['q']??'')); $status=trim((string)($_GET['status']??''));
+$sql='SELECT * FROM articles WHERE 1=1'; $params=[];
+if($q!==''){ $sql.=' AND (title LIKE ? OR category LIKE ?)'; $like='%'.$q.'%'; array_push($params,$like,$like); }
+if(in_array($status,['draft','published'],true)){ $sql.=' AND status=?'; $params[]=$status; }
+$sql.=' ORDER BY updated_at DESC'; $s=db()->prepare($sql);$s->execute($params);$rows=$s->fetchAll();
+$stats=db()->query("SELECT COUNT(*) total, SUM(CASE WHEN status='published' THEN 1 ELSE 0 END) published, SUM(CASE WHEN status='draft' THEN 1 ELSE 0 END) drafts FROM articles")->fetch();
+$flash=take_flash(); render_header('Dashboard','',true);
+?><div class="admin-layout"><aside class="sidebar"><a class="brand" href="<?=e(app_url('admin.php'))?>"><span class="brand-mark">N</span><span>Nova CMS</span></a><nav><a class="active" href="<?=e(app_url('admin.php'))?>">Articles</a><a href="<?=e(app_url('index.php'))?>" target="_blank">Voir le site ↗</a></nav><form method="post" action="<?=e(app_url('logout.php'))?>"><input type="hidden" name="_csrf" value="<?=e(csrf_token())?>"><button class="sidebar-logout">Déconnexion</button></form></aside><main class="admin-main"><header class="admin-top"><div><span class="eyebrow">Dashboard</span><h1>Contenu</h1><p>Créez, organisez et publiez vos articles.</p></div><a class="btn primary" href="<?=e(app_url('add_article.php'))?>">+ Nouvel article</a></header><?php if($flash):?><div class="alert <?=e($flash['type'])?>"><?=e($flash['message'])?></div><?php endif;?><section class="stats"><div><span>Total</span><strong><?=e((string)($stats['total']??0))?></strong></div><div><span>Publiés</span><strong><?=e((string)($stats['published']??0))?></strong></div><div><span>Brouillons</span><strong><?=e((string)($stats['drafts']??0))?></strong></div></section><form class="toolbar" method="get"><input name="q" value="<?=e($q)?>" placeholder="Rechercher…"><select name="status"><option value="">Tous les statuts</option><option value="published" <?=$status==='published'?'selected':''?>>Publiés</option><option value="draft" <?=$status==='draft'?'selected':''?>>Brouillons</option></select><button class="btn">Filtrer</button></form><section class="table-card"><?php if(!$rows):?><div class="empty"><h2>Aucun contenu</h2><p>Créez votre premier article.</p></div><?php else:?><div class="table-scroll"><table><thead><tr><th>Article</th><th>Catégorie</th><th>Statut</th><th>Modifié</th><th></th></tr></thead><tbody><?php foreach($rows as $row):?><tr><td><div class="article-cell"><strong><?=e($row['title'])?></strong><small>/<?=e($row['slug'])?></small></div></td><td><?=e($row['category'])?></td><td><span class="status <?=$row['status']==='published'?'published':'draft'?>"><?=$row['status']==='published'?'Publié':'Brouillon'?></span></td><td><?=e(date('d/m/Y H:i',strtotime($row['updated_at'])))?></td><td><div class="actions"><a href="<?=e(app_url('edit_article.php?id='.(int)$row['id']))?>">Modifier</a><?php if($row['status']==='published'):?><a target="_blank" href="<?=e(app_url('index.php?slug='.urlencode($row['slug'])))?>">Voir</a><?php endif;?><form method="post" action="<?=e(app_url('delete_article.php'))?>" data-confirm="Supprimer définitivement cet article ?"><input type="hidden" name="_csrf" value="<?=e(csrf_token())?>"><input type="hidden" name="id" value="<?=(int)$row['id']?>"><button>Supprimer</button></form></div></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></section></main></div><?php render_footer();

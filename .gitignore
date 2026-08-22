@@ -1,0 +1,9 @@
+.env
+.env.*
+!.env.example
+storage/*.sqlite
+storage/*.db
+uploads/*
+!uploads/.gitkeep
+.DS_Store
+*.log
