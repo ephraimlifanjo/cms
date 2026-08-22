@@ -1,17 +1,7 @@
 <?php
-require __DIR__.'/bootstrap.php';
-if (is_admin()) redirect('admin.php');
-$error='';
-if ($_SERVER['REQUEST_METHOD']==='POST') {
-    verify_csrf();
-    if (login_rate_limited()) $error='Trop de tentatives. Réessayez dans quelques minutes.';
-    else {
-        $password=admin_password();
-        if (!$password) $error='Connexion admin désactivée : configurez CMS_ADMIN_PASSWORD.';
-        elseif (hash_equals(admin_username(), (string)($_POST['username']??'')) && hash_equals($password,(string)($_POST['password']??''))) {
-            session_regenerate_id(true); $_SESSION['admin_authenticated']=true; clear_login_failures(); redirect('admin.php');
-        } else { record_login_failure(); $error='Identifiants invalides.'; }
-    }
-}
-render_header('Connexion','',true);
-?><main class="auth-page"><section class="auth-card"><a class="brand" href="<?=e(app_url('index.php'))?>"><span class="brand-mark">N</span><span>Nova CMS</span></a><div class="auth-copy"><span class="eyebrow">Espace sécurisé</span><h1>Bon retour.</h1><p>Connectez-vous pour gérer vos publications.</p></div><?php if($error):?><div class="alert error"><?=e($error)?></div><?php endif;?><form method="post" class="form-stack"><input type="hidden" name="_csrf" value="<?=e(csrf_token())?>"><label>Identifiant<input name="username" autocomplete="username" required value="<?=e(admin_username())?>"></label><label>Mot de passe<input type="password" name="password" autocomplete="current-password" required></label><button class="btn primary" type="submit">Se connecter</button></form><a class="back-link" href="<?=e(app_url('index.php'))?>">← Retour au site</a></section></main><?php render_footer();
+require __DIR__ . '/bootstrap.php';
+if(current_user())redirect('admin.php');$csrf=auth_ready()?csrf_token():'';$error='';$email='';
+if($_SERVER['REQUEST_METHOD']==='POST'){if(!auth_ready()||is_read_only_demo())$error='Connexion désactivée tant que la production n’a pas de base persistante et APP_KEY.';else{verify_csrf();$email=strtolower(trim((string)($_POST['email']??'')));$password=(string)($_POST['password']??'');$s=db()->prepare('SELECT * FROM users WHERE email=?');$s->execute([$email]);$user=$s->fetch();usleep(random_int(10000,50000));if($user&&password_verify($password,(string)$user['password_hash'])){login_user($user);redirect('admin.php');}$error='E-mail ou mot de passe incorrect.';}}
+render_header('Connexion','Connectez-vous à votre dashboard Nova CMS.','auth-page');render_nav();
+?>
+<main class="auth-layout section-shell auth-login-layout"><section class="auth-promo login-promo"><img src="<?=e(app_url('assets/images/cover-code.svg'))?>" alt=""><span class="eyebrow-text">WELCOME BACK</span><h1>Continuez à<br><em>construire en public.</em></h1><p>Retrouvez vos brouillons, vos publications et la personnalisation de votre site.</p></section><section class="auth-card compact-auth-card"><div class="auth-card-head"><span class="step-badge">Espace créateur</span><h2>Connexion</h2><p>Utilisez le mot de passe que vous avez choisi à l’inscription.</p></div><?php if($error):?><div class="alert alert-error"><?=e($error)?></div><?php endif;?><?php if(!auth_ready()||is_read_only_demo()):?><div class="alert alert-info">La démo publique est en lecture seule. La connexion nécessite une base persistante.</div><?php endif;?><form method="post" class="form-stack"><input type="hidden" name="_csrf" value="<?=e($csrf)?>"><label>E-mail<input type="email" name="email" value="<?=e($email)?>" autocomplete="email" required></label><label>Mot de passe<input type="password" name="password" autocomplete="current-password" required></label><button class="btn btn-primary btn-full" <?=(!auth_ready()||is_read_only_demo())?'disabled':''?>>Se connecter <span>→</span></button></form><p class="auth-switch">Pas encore d’espace ? <a href="<?=e(app_url('register.php'))?>">Créer mon blog</a></p></section></main><?php render_footer(); ?>
