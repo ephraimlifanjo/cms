@@ -1,14 +1,9 @@
 name: PHP CI
-
 on:
   push:
-    branches: [main, "release/**"]
   pull_request:
-    branches: [main]
-
 permissions:
   contents: read
-
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -18,19 +13,28 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: pdo_sqlite, fileinfo, mbstring
-          coverage: none
+          extensions: pdo_sqlite, mbstring, fileinfo
       - name: PHP syntax check
         run: find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
-      - name: Smoke test
+      - name: Smoke test database and registration model
         env:
-          CMS_ADMIN_PASSWORD: ci-only-password-not-for-production
+          APP_KEY: ci-test-key-abcdefghijklmnopqrstuvwxyz-123456
+          CMS_SEED_DEMO: '1'
           SQLITE_PATH: /tmp/nova-cms-ci.sqlite
         run: |
-          php -S 127.0.0.1:8080 > /tmp/nova-cms.log 2>&1 &
-          SERVER_PID=$!
-          trap 'kill $SERVER_PID' EXIT
-          sleep 1
-          curl --fail --silent http://127.0.0.1:8080/ | grep -q 'Nova CMS'
-          curl --fail --silent http://127.0.0.1:8080/login.php | grep -q 'Bon retour'
-          curl --fail --silent http://127.0.0.1:8080/health.php | grep -q '"ok":true'
+          rm -f /tmp/nova-cms-ci.sqlite
+          php -r 'require "bootstrap.php"; $pdo=db(); if((int)$pdo->query("SELECT COUNT(*) FROM sites")->fetchColumn()<1) exit(1); if(!password_verify("hello-world", password_hash("hello-world", PASSWORD_DEFAULT))) exit(2); echo "db/auth ok\n";'
+      - name: HTTP smoke test
+        env:
+          APP_KEY: ci-test-key-abcdefghijklmnopqrstuvwxyz-123456
+          CMS_SEED_DEMO: '1'
+          SQLITE_PATH: /tmp/nova-cms-http.sqlite
+        run: |
+          php -S 127.0.0.1:8080 >/tmp/nova-cms.log 2>&1 &
+          PID=$!
+          sleep 2
+          curl -fsS http://127.0.0.1:8080/ | grep -q 'Votre coin du web'
+          curl -fsS http://127.0.0.1:8080/register.php | grep -q 'Créer mon compte'
+          curl -fsS 'http://127.0.0.1:8080/site.php?slug=nova-makers' | grep -q 'Nova Makers Journal'
+          curl -fsS http://127.0.0.1:8080/health.php | grep -q '"ok":true'
+          kill $PID

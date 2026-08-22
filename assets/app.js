@@ -1,48 +1,14 @@
-document.addEventListener('submit', (event) => {
-  const message = event.target?.dataset?.confirm;
-  if (message && !window.confirm(message)) event.preventDefault();
-});
-
-const imageUrl = document.querySelector('#article-image-url');
-const imageFile = document.querySelector('#article-image-file');
-const imagePreview = document.querySelector('#article-image-preview');
-const imagePlaceholder = document.querySelector('#article-image-placeholder');
-
-function showImagePreview(src) {
-  if (!imagePreview || !imagePlaceholder) return;
-  const value = String(src || '').trim();
-  if (!value) {
-    imagePreview.hidden = true;
-    imagePreview.removeAttribute('src');
-    imagePlaceholder.hidden = false;
-    return;
+document.addEventListener('click', async (event) => {
+  const copy = event.target.closest('[data-copy]');
+  if (copy) {
+    try { await navigator.clipboard.writeText(copy.dataset.copy || ''); copy.textContent = 'Copié ✓'; setTimeout(() => copy.textContent = 'Copier', 1400); } catch (_) {}
   }
-  imagePreview.src = value;
-  imagePreview.hidden = false;
-  imagePlaceholder.hidden = true;
-}
-
-if (imageUrl) {
-  imageUrl.addEventListener('input', () => showImagePreview(imageUrl.value));
-}
-
-if (imageFile) {
-  imageFile.addEventListener('change', () => {
-    const file = imageFile.files?.[0];
-    if (!file) {
-      showImagePreview(imageUrl?.value || '');
-      return;
-    }
-    if (!file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = () => showImagePreview(reader.result);
-    reader.readAsDataURL(file);
-  });
-}
-
-if (imagePreview) {
-  imagePreview.addEventListener('error', () => {
-    imagePreview.hidden = true;
-    if (imagePlaceholder) imagePlaceholder.hidden = false;
-  });
-}
+  const toggle = event.target.closest('[data-menu-toggle]');
+  if (toggle) document.querySelector('.dash-sidebar')?.classList.toggle('open');
+});
+document.querySelectorAll('form[data-confirm]').forEach((form) => form.addEventListener('submit', (event) => {
+  if (!window.confirm(form.dataset.confirm || 'Confirmer cette action ?')) event.preventDefault();
+}));
+document.querySelectorAll('input[type="color"]').forEach((input) => input.addEventListener('input', () => {
+  const code = input.parentElement?.querySelector('code'); if (code) code.textContent = input.value;
+}));

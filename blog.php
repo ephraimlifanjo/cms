@@ -1,1 +1,2 @@
-<?php header('Location: index.php', true, 301); exit;
+<?php
+header('Location: index.php',true,301);exit;

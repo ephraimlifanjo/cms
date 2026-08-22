@@ -1,9 +1,10 @@
 .env
 .env.*
 !.env.example
-storage/*.sqlite
-storage/*.db
-uploads/*
-!uploads/.gitkeep
+/storage/*.sqlite
+/storage/*.sqlite-*
+/storage/app.key
+/uploads/*
+!/uploads/.keep
 .DS_Store
-*.log
+Thumbs.db

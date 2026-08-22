@@ -1,74 +1,127 @@
 # Nova CMS
 
-Nova CMS is a small open-source PHP publishing CMS for blogs, portfolios, associations and small teams. It stays intentionally simple: no framework, no Composer dependency, and a clean admin dashboard.
+**Nova CMS** is an open-source multi-user PHP publishing platform for developers, creators, students and communities that want a small personal blog without adopting a large CMS framework.
 
-## Features
+Repository: **https://github.com/ephraimlifanjo/cms**  
+Demo: **https://nova-cms-php.vercel.app**
 
-- Public responsive blog with search, categories and featured posts
-- Draft/published workflow
-- Admin dashboard and article editor
-- SEO title and meta description per article
-- Local image uploads with MIME/size validation
-- External image URLs for serverless deployments
-- Live cover-image preview in the editor
-- PDO with SQLite locally and MySQL/PostgreSQL through `DATABASE_URL`
-- CSRF protection, prepared statements, session hardening and login throttling
-- POST-only destructive actions
-- Mobile-first UI
+## What changed in v1.1
 
-## Requirements
+Nova CMS is no longer a single shared `admin/password` blog. Every creator can:
 
-PHP 8.2+ with PDO and `fileinfo`.
+- create an account with email + their own password;
+- get an isolated personal site;
+- choose a public site slug;
+- edit profile, bio, avatar, cover and accent color;
+- publish drafts or live articles;
+- use built-in SVG covers stored in this repository;
+- add external HTTPS images or local uploads on persistent PHP hosting;
+- change their password from the account screen;
+- share their public site URL.
 
-## Run locally
+Passwords are created by users and stored with PHP `password_hash()`. **There is no static admin password in this repository.**
+
+## Stack
+
+- PHP 8.2+
+- PDO
+- SQLite for local/shared-hosting quick start
+- PostgreSQL or MySQL via `DATABASE_URL`
+- Vanilla CSS + JavaScript
+- no Composer dependency
+- GitHub Actions CI
+
+## Quick start on Windows
 
 ```powershell
+cd "$HOME\Desktop"
+git clone https://github.com/ephraimlifanjo/cms.git
+cd cms
+Copy-Item .env.example .env
 php -S localhost:8000
 ```
 
-Open `http://localhost:8000`.
+Open `http://localhost:8000/register.php`, create your account and choose your password. Local development automatically creates a private `storage/app.key` and `storage/cms.sqlite` if you leave those values empty.
 
-### Local demo admin
+## Production environment
 
-When Nova CMS runs through PHP's built-in development server, the demo account is:
-
-```text
-username: admin
-password: 1234
-```
-
-This `1234` password is **development/demo only**. Public production deployments keep admin access disabled unless `CMS_ADMIN_PASSWORD` is explicitly configured server-side.
-
-## Images
-
-In the article editor you can either:
-
-- paste an HTTPS image URL, or
-- choose a JPG, PNG, WebP or GIF file locally (5 MB maximum).
-
-The editor shows the cover immediately before saving. On Vercel/serverless hosting, use an external image URL or persistent object storage because the local filesystem is not durable.
-
-## Production configuration
-
-Set at least:
+Set:
 
 ```env
 APP_URL=https://your-domain.example
-CMS_SITE_NAME=My publication
-CMS_ADMIN_USERNAME=admin
-CMS_ADMIN_PASSWORD=<long-random-secret>
+APP_KEY=<random secret with at least 32 characters>
 DATABASE_URL=postgresql://user:password@host:5432/database
+PLATFORM_OWNER_EMAIL=owner@example.com
 ```
 
-`DATABASE_URL` can also use `mysql://...`.
+Generate an `APP_KEY` locally:
+
+```powershell
+php -r "echo bin2hex(random_bytes(32)), PHP_EOL;"
+```
+
+The user that registers with `PLATFORM_OWNER_EMAIL` receives the `admin` platform role. Other accounts receive the `creator` role.
+
+## Database behavior
+
+### Local / classic PHP hosting
+
+If `DATABASE_URL` is empty, Nova CMS uses `storage/cms.sqlite`. This is persistent on a normal server filesystem and requires no external database credentials.
 
 ### Vercel
 
-This repository includes `vercel.json` using the community `vercel-php` runtime. Vercel functions do **not** provide durable local disk storage, so production must use a persistent remote MySQL/PostgreSQL database. For images on Vercel, use external image URLs or connect an object-storage/CDN provider.
+Vercel Functions have an ephemeral writable filesystem. Therefore SQLite under `/tmp` is **demo-only**. A real multi-user Vercel deployment requires a persistent PostgreSQL/MySQL `DATABASE_URL` plus `APP_KEY`.
+
+Until these are configured, the public demo remains readable but registration/login are intentionally disabled rather than pretending that user data is durable.
+
+## Images
+
+The repository includes reusable SVG assets under `assets/images/`:
+
+- `logo-mark.svg`
+- `hero-studio.svg`
+- `avatar-default.svg`
+- `cover-code.svg`
+- `cover-creative.svg`
+- `blog-default.svg`
+
+They work without Cloudinary, S3 or another account. On classic PHP hosting you can also upload JPG/PNG/WebP/GIF up to 5 MB. On Vercel use external HTTPS images or connect object storage for persistent uploads.
 
 ## Security
 
-Do not commit `.env`. Never use `1234` for a public deployment. Rotate any credential that has ever been committed. See [SECURITY.md](SECURITY.md).
+- `password_hash()` / `password_verify()`
+- signed authentication cookie
+- CSRF protection
+- PDO prepared statements
+- per-site ownership checks on article mutations
+- POST-only delete/logout actions
+- MIME and size validation for uploads
+- secure/HttpOnly/SameSite cookies
+- security response headers
+- `.env`, app key and SQLite DB ignored by Git
+
+See [SECURITY.md](SECURITY.md).
+
+## Project structure
+
+```text
+assets/images/       built-in public artwork
+api/index.php        Vercel PHP front controller
+bootstrap.php        config, auth, database, migrations, helpers
+register.php         creator signup
+login.php            creator login
+admin.php            personal dashboard
+settings.php         site customization
+account.php          password management
+add_article.php      create content
+edit_article.php     edit content
+site.php             public creator site
+article.php          public article page
+```
+
+## Contributing
+
+Fork the repository, create a branch, run the CI checks locally if possible, and open a pull request. The goal is to keep Nova CMS understandable for PHP learners while still following production-grade security habits.
 
 ## License
 
