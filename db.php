@@ -1,6 +1,4 @@
 <?php
-$conn = new mysqli("localhost", "root", "", "cms_db");
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-?>
+// Backward-compatible entry point. New code uses bootstrap.php + db().
+require_once __DIR__ . '/bootstrap.php';
+$conn = db();
