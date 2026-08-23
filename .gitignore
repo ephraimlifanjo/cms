@@ -1,10 +1,11 @@
+node_modules/
+.svelte-kit/
+build/
+.vercel/
 .env
 .env.*
 !.env.example
-/storage/*.sqlite
-/storage/*.sqlite-*
-/storage/app.key
-/uploads/*
-!/uploads/.keep
 .DS_Store
-Thumbs.db
+*.log
+coverage/
+.phpunit.result.cache
