@@ -11,7 +11,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 export const actions: Actions = {
   default: async ({ locals, request }) => {
     const { user } = await locals.safeGetSession();
-    if (!user) return fail(401, { message: 'Connexion requise.' });
+    if (!user) return fail(401, { message: 'Connexion requise.', title: '', body: '', channelId: 'general' });
     const data = await request.formData();
     const title = String(data.get('title') || '').trim();
     const body = String(data.get('body') || '').trim();

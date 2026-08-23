@@ -1,11 +1,17 @@
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
+function one<T>(value: T | T[] | null | undefined): T | null {
+  return Array.isArray(value) ? (value[0] ?? null) : (value ?? null);
+}
+
 export const load: PageServerLoad = async ({ locals, params }) => {
-  const { data: thread } = await locals.supabase.from('threads').select('*,author:profiles!threads_author_id_fkey(username,display_name,avatar_url)').eq('id', params.id).maybeSingle();
-  if (!thread) error(404, 'Discussion introuvable');
-  const { data: replies } = await locals.supabase.from('replies').select('*,author:profiles!replies_author_id_fkey(username,display_name,avatar_url)').eq('thread_id', params.id).order('created_at');
-  return { thread, replies: replies ?? [] };
+  const { data: rawThread } = await locals.supabase.from('threads').select('*,author:profiles!threads_author_id_fkey(username,display_name,avatar_url)').eq('id', params.id).maybeSingle();
+  if (!rawThread) error(404, 'Discussion introuvable');
+  const { data: rawReplies } = await locals.supabase.from('replies').select('*,author:profiles!replies_author_id_fkey(username,display_name,avatar_url)').eq('thread_id', params.id).order('created_at');
+  const thread = { ...rawThread, author: one(rawThread.author) };
+  const replies = (rawReplies ?? []).map((reply) => ({ ...reply, author: one(reply.author) }));
+  return { thread, replies };
 };
 
 export const actions: Actions = {
