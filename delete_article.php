@@ -1,2 +1,0 @@
-<?php
-require __DIR__.'/bootstrap.php';$user=require_user();$site=site_by_owner((int)$user['id']);if(!$site)exit;if($_SERVER['REQUEST_METHOD']!=='POST'){http_response_code(405);exit;}verify_csrf();if(is_read_only_demo()){http_response_code(403);exit('Mode lecture seule.');}$id=filter_input(INPUT_POST,'id',FILTER_VALIDATE_INT);if($id){$s=db()->prepare('DELETE FROM articles WHERE id=? AND site_id=?');$s->execute([(int)$id,(int)$site['id']]);}redirect('admin.php');
