@@ -1,0 +1,32 @@
+<script lang="ts">
+  let { data, form } = $props();
+  let published = $derived(data.posts.filter((p: any) => p.status === 'published').length);
+  let drafts = $derived(data.posts.length - published);
+  function confirmDelete(event: SubmitEvent) {
+    if (!confirm('Supprimer définitivement ce contenu ?')) event.preventDefault();
+  }
+</script>
+<svelte:head><title>Studio — Nova CMS</title></svelte:head>
+<div>
+  <div class="flex flex-col justify-between gap-5 rounded-[2rem] bg-white p-7 md:flex-row md:items-end">
+    <div><div class="text-xs font-black uppercase tracking-[.14em] text-[#635bff]">Dashboard</div><h1 class="mt-2 text-4xl font-black tracking-[-.05em]">Ton contenu, sans bruit.</h1><p class="mt-2 text-sm text-black/45">Publie les choses qui méritent d’être montrées.</p></div>
+    <a href="/studio/new" class="rounded-full bg-black px-5 py-3 text-sm font-black text-white">+ Nouveau contenu</a>
+  </div>
+  <div class="mt-5 grid gap-4 sm:grid-cols-3">
+    <div class="rounded-[1.6rem] bg-white p-6"><div class="text-xs font-black uppercase tracking-[.13em] text-black/35">Total</div><div class="mt-2 text-4xl font-black">{data.posts.length}</div></div>
+    <div class="rounded-[1.6rem] bg-white p-6"><div class="text-xs font-black uppercase tracking-[.13em] text-black/35">Publiés</div><div class="mt-2 text-4xl font-black">{published}</div></div>
+    <div class="rounded-[1.6rem] bg-white p-6"><div class="text-xs font-black uppercase tracking-[.13em] text-black/35">Brouillons</div><div class="mt-2 text-4xl font-black">{drafts}</div></div>
+  </div>
+  {#if form?.message}<div class="mt-5 rounded-2xl bg-red-50 p-4 text-sm text-red-700">{form.message}</div>{/if}
+  <div class="mt-5 overflow-hidden rounded-[2rem] bg-white">
+    <div class="border-b border-black/8 px-6 py-5 text-sm font-black">Publications</div>
+    {#each data.posts as post}
+      <div class="grid gap-4 border-b border-black/8 px-6 py-5 last:border-0 md:grid-cols-[1fr_auto] md:items-center">
+        <div><div class="text-[10px] font-black uppercase tracking-[.14em] text-[#635bff]">{post.kind} · {post.status}</div><div class="mt-1 text-lg font-black tracking-[-.03em]">{post.title}</div></div>
+        <div class="flex gap-2"><a href="/studio/edit/{post.id}" class="rounded-full border border-black/10 px-4 py-2 text-xs font-black">Modifier</a><form method="POST" action="?/delete" onsubmit={confirmDelete}><input type="hidden" name="id" value={post.id} /><button class="rounded-full border border-red-200 px-4 py-2 text-xs font-black text-red-600">Supprimer</button></form></div>
+      </div>
+    {:else}
+      <div class="p-10 text-center text-sm text-black/45">Ton Studio est vide. Commence par un projet ou une note.</div>
+    {/each}
+  </div>
+</div>

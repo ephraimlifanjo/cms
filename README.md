@@ -1,154 +1,81 @@
-# Nova CMS
+# Nova CMS v2
 
-**Nova CMS** is an open-source PHP CMS for building a personal showcase: selected work, projects, articles, notes, images and an about section — with a small private admin behind it.
+Nova CMS is an open-source **showcase + publishing + community platform** for developers and creators. It is designed for the Nova Studio developer community, but anyone can fork and self-host it.
 
-Repository: **https://github.com/ephraimlifanjo/cms**  
-Demo: **https://nova-cms-php.vercel.app**
-
-## Product direction — v1.2
-
-Nova CMS is **showcase-first, CMS-second**.
-
-A visitor should feel that they are visiting a person's website, not a SaaS, directory, community feed or CMS marketing page.
-
-The public root `/` now presents:
-
-- a personal hero and visual identity;
-- selected work / projects;
-- a journal for articles and notes;
-- large images and editorial layouts;
-- an About section;
-- a discreet link to the private administration;
-- a very small “Powered by Nova CMS” signature in the footer.
-
-The CMS exists behind the presentation. The owner edits the content; visitors only see the showcase.
-
-## Architecture
-
-```text
-PUBLIC EXPERIENCE
-/
-├── Hero / identity
-├── Selected work
-├── Journal
-├── About
-└── Article pages
-
-PRIVATE CMS
-/login.php
-└── /admin.php
-    ├── articles
-    ├── drafts
-    ├── images
-    ├── appearance
-    └── account/security
-
-CORE
-bootstrap.php
-├── PDO database
-├── authentication
-├── CSRF/security
-├── migrations
-└── content helpers
-```
-
-The existing users/sites engine remains available internally for developers who want to extend Nova CMS into a hosted multi-site product, but **the default public product is a single personal showcase**.
-
-To choose which site is rendered at `/`, set:
-
-```env
-CMS_PUBLIC_SITE_SLUG=my-site-slug
-```
-
-If it is not set, Nova CMS renders the first available site.
+The v2 architecture deliberately removes local SQLite/password auth from the production product.
 
 ## Stack
 
-- PHP 8.2+
-- PDO
-- SQLite for local/classic hosting
-- PostgreSQL or MySQL through `DATABASE_URL`
-- Vanilla CSS + JavaScript
-- no Composer dependency
-- GitHub Actions CI
+- **Svelte 5 + SvelteKit 2** — public website, authenticated studio, SSR
+- **Tailwind CSS 4** — design system and responsive UI
+- **TypeScript** — application types and safer server actions
+- **Supabase Auth** — email/password authentication and email verification
+- **Supabase PostgreSQL** — profiles, showcases, posts, discussions, replies and moderation reports
+- **Supabase Storage** — avatars and covers
+- **Supabase RLS** — authorization at database level
+- **PHP 8.5 API** — complementary server-side endpoints such as health and moderation proxying
+- **IndexedDB** — local editor draft autosave only; never the production source of truth
+- **Vercel** — SvelteKit + PHP serverless deployment
 
-## Quick start
+## Product
+
+Every member can create an account and gets a personal showcase at `/u/<slug>` with projects, articles, notes, biography and visual identity. The `/community` area is a small discussion space for Nova Studio members. The private `/studio` area manages content and identity.
+
+## Local setup
 
 ```powershell
 cd "$HOME\Desktop"
 git clone https://github.com/ephraimlifanjo/cms.git
 cd cms
+npm install
 Copy-Item .env.example .env
-php -S localhost:8000
+npm run dev
 ```
 
-Then open:
-
-```text
-http://localhost:8000
-```
-
-Administration:
-
-```text
-http://localhost:8000/login.php
-```
-
-## Production environment
+Create a Supabase project, apply `supabase/migrations/0001_nova_cms.sql`, then fill:
 
 ```env
-APP_URL=https://your-domain.example
-APP_KEY=<random secret with at least 32 characters>
-DATABASE_URL=postgresql://user:password@host:5432/database
-CMS_PUBLIC_SITE_SLUG=my-showcase
-PLATFORM_OWNER_EMAIL=owner@example.com
+PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+PUBLIC_SITE_URL=http://localhost:5173
+SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ```
 
-Generate an app key:
+## Authentication
 
-```powershell
-php -r "echo bin2hex(random_bytes(32)), PHP_EOL;"
-```
+Nova CMS uses Supabase Auth only. Passwords never pass through the PHP API and Nova CMS does not maintain a parallel password table.
 
-## Images
-
-Built-in reusable artwork lives in `assets/images/` and works without a third-party image account. The showcase accepts local assets and HTTPS image URLs. Classic PHP hosting can also persist uploaded JPG/PNG/WebP/GIF images.
-
-## Security
-
-- `password_hash()` / `password_verify()`
-- signed authentication cookie
-- CSRF protection
-- PDO prepared statements
-- content ownership checks
-- POST-only destructive actions
-- MIME/size validation for uploads
-- Secure / HttpOnly / SameSite cookies
-- security response headers
-- secrets and database files ignored by Git
-
-See [SECURITY.md](SECURITY.md).
-
-## Main files
+For SSR email confirmation, configure the Supabase confirmation template to point to:
 
 ```text
-index.php             public personal showcase
-assets/showcase.css   showcase-specific design system
-article.php           public long-form article
-login.php             private admin login
-admin.php             content dashboard
-settings.php          identity / appearance
-account.php           password/security
-add_article.php       create content
-edit_article.php      edit content
-bootstrap.php         core, auth, DB, helpers
-site.php              legacy/alternate public site renderer
+{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email
 ```
 
-## Fork it for your own site
+Set the Supabase Site URL to your deployed domain and add localhost during development.
 
-Nova CMS is intentionally small. A developer can fork it, replace the demo identity, configure one public site, deploy it and use the admin to keep the showcase alive without adopting WordPress or a large framework.
+## Database security
 
-## License
+The migration enables Row Level Security on all user-owned tables. Public visitors can only read published showcases/posts and public community content. Authenticated users can only mutate rows they own. Moderation reports are insert-only for normal users.
 
-MIT.
+## PHP API
+
+`api/php/index.php` is intentionally small. It exposes `/api/php/health` and `/api/php/reports`. Reports are forwarded to Supabase using the caller's JWT so RLS still decides access.
+
+## Deploy
+
+The SvelteKit app uses `@sveltejs/adapter-vercel`; `vercel.json` additionally maps the PHP API to `vercel-php`.
+
+Required Vercel environment variables:
+
+```text
+PUBLIC_SUPABASE_URL
+PUBLIC_SUPABASE_PUBLISHABLE_KEY
+PUBLIC_SITE_URL
+SUPABASE_URL
+SUPABASE_PUBLISHABLE_KEY
+```
+
+## Open source
+
+MIT. Fork it, rebrand it, add community channels, or turn off the community module and use it as a personal portfolio/blog.

@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+  --color-nova: #635bff;
+}
+
+:root { color-scheme: light; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: #f6f4ee; color: #111; font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+::selection { background: #635bff; color: white; }
+.prose-nova { white-space: pre-wrap; font-size: 1.08rem; line-height: 1.9; color: rgb(0 0 0 / .74); }
+.glass { background: rgb(255 255 255 / .76); backdrop-filter: blur(18px); }
